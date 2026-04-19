@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Published Courses Editor</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 6px 18px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .toolbar button {
+      border: none;
+      background: #111827;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .toolbar button.secondary {
+      background: #ffffff;
+      color: #111827;
+      border: 1px solid var(--border);
+    }
+
+    .note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 28px 34px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .card-media-link {
+      display: block;
+      text-decoration: none;
+      position: relative;
+    }
+
+    .card-media {
+      height: 145px;
+      background: #8b5cf6 center/cover no-repeat;
+      position: relative;
+    }
+
+    .card-media::after {
+      content: "点击图片跳转";
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      font-size: 11px;
+      background: rgba(17,24,39,0.72);
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 999px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .card-media-link:hover .card-media::after {
+      opacity: 1;
+    }
+
+    .overlay-title {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 14px;
+      background: rgba(31, 41, 55, 0.62);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.25;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+
+    .card-body {
+      padding: 14px 16px 10px;
+    }
+
+    .title-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      border-radius: 8px;
+    }
+
+    .title-link:hover .main-title {
+      color: #1d4ed8;
+      text-decoration: underline;
+    }
+
+    .main-title,
+    .sub-title,
+    .course-code,
+    .overlay-title {
+      outline: none;
+      border-radius: 6px;
+    }
+
+    .main-title:focus,
+    .sub-title:focus,
+    .course-code:focus,
+    .overlay-title:focus {
+      background: #f9fafb;
+      box-shadow: 0 0 0 2px #dbeafe;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .main-title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #374151;
+      margin-bottom: 6px;
+      min-height: 18px;
+    }
+
+    .sub-title {
+      font-size: 14px;
+      line-height: 1.4;
+      color: #374151;
+      margin-bottom: 4px;
+      min-height: 20px;
+    }
+
+    .course-code {
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 16px;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px 14px;
+    }
+
+    .icon-row {
+      display: flex;
+      gap: 14px;
+      color: #6b7280;
+      font-size: 18px;
+    }
+
+    .edit-toggle {
+      border: 1px solid var(--border);
+      background: white;
+      padding: 7px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #111827;
+    }
+
+    .editor-panel {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 14px 16px 16px;
+      background: #fafafa;
+    }
+
+    .card.editing .editor-panel {
+      display: block;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+    }
+
+    .field input[type="color"] {
+      height: 40px;
+      padding: 4px;
+    }
+
+    .field .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .actions button {
+      border: none;
+      background: #111827;
+      color: white;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .actions button.light {
+      background: white;
+      color: #111827;
+      border: 1px solid var(--border);
+    }
+
+    .actions button.danger {
+      background: #b91c1c;
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 16px; }
+      .grid { gap: 18px; }
+      .overlay-title { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 id="pageTitle">Published Courses (9)</h1>
+
+    <div class="toolbar">
+      <button id="addCourseBtn">添加 Certification</button>
+      <button id="saveAllBtn">保存到浏览器</button>
+      <button id="resetBtn" class="secondary">恢复默认</button>
+      <span class="note">说明：点击图片和 certification title 都可以跳转。支持新增、删除、编辑图片、文字、颜色和链接。</span>
+    </div>
+
+    <div class="grid" id="courseGrid"></div>
+  </div>
+
+  <script>
+    const defaultCourses = [
+      {
+        overlayTitle: 'Certificate III in Individual Support',
+        mainTitle: 'Certificate III in Individual Support',
+        subTitle: 'CHC33021',
+        code: 'OIC Course 01',
+        image: '',
+        url: 'https://example.com/certificate-iii-individual-support',
+        color: '#2f6edb'
+      },
+      {
+        overlayTitle: 'Certificate III in Individual Support / Disability',
+        mainTitle: 'Certificate III in Individual Support / Disability',
+        subTitle: 'CHC33021',
+        code: 'OIC Course 02',
+        image: '',
+        url: 'https://example.com/certificate-iii-individual-support-disability',
+        color: '#4c7fe3'
+      },
+      {
+        overlayTitle: 'Certificate III in Individual Support / Ageing',
+        mainTitle: 'Certificate III in Individual Support / Ageing',
+        subTitle: 'CHC33021',
+        code: 'OIC Course 03',
+        image: '',
+        url: 'https://example.com/certificate-iii-individual-support-ageing',
+        color: '#6a91ea'
+      },
+      {
+        overlayTitle: 'Diploma of Community Services',
+        mainTitle: 'Diploma of Community Services',
+        subTitle: 'CHC52021',
+        code: 'OIC Course 04',
+        image: '',
+        url: 'https://example.com/diploma-community-services',
+        color: '#5b66d6'
+      },
+      {
+        overlayTitle: 'Diploma of Community Services / Case Management',
+        mainTitle: 'Diploma of Community Services / Case Management',
+        subTitle: 'CHC52021',
+        code: 'OIC Course 05',
+        image: '',
+        url: 'https://example.com/diploma-community-services-case-management',
+        color: '#7758d1'
+      },
+      {
+        overlayTitle: 'Diploma of Community Services / Social Housing',
+        mainTitle: 'Diploma of Community Services / Social Housing',
+        subTitle: 'CHC52021',
+        code: 'OIC Course 06',
+        image: '',
+        url: 'https://example.com/diploma-community-services-social-housing',
+        color: '#8a4fca'
+      },
+      {
+        overlayTitle: 'Diploma of Community Services / Child, Youth and Family Welfare',
+        mainTitle: 'Diploma of Community Services / Child, Youth and Family Welfare',
+        subTitle: 'CHC52021',
+        code: 'OIC Course 07',
+        image: '',
+        url: 'https://example.com/diploma-community-services-child-youth-family-welfare',
+        color: '#a14bb7'
+      },
+      {
+        overlayTitle: 'Diploma of Community Services / Responding to Family Violence',
+        mainTitle: 'Diploma of Community Services / Responding to Family Violence',
+        subTitle: 'CHC52021',
+        code: 'OIC Course 08',
+        image: '',
+        url: 'https://example.com/diploma-community-services-responding-to-family-violence',
+        color: '#b14a97'
+      },
+      {
+        overlayTitle: 'Certificate IV in Ageing Support',
+        mainTitle: 'Certificate IV in Ageing Support',
+        subTitle: 'CHC43015',
+        code: 'OIC Course 09',
+        image: '',
+        url: 'https://example.com/certificate-iv-ageing-support',
+        color: '#c35a74'
+      }
+    ];
+
+    const STORAGE_KEY = 'eskilled-course-dashboard-editor-v2';
+    let courses = loadCourses();
+
+    function deepClone(data) {
+      return JSON.parse(JSON.stringify(data));
+    }
+
+    function loadCourses() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : deepClone(defaultCourses);
+      } catch (e) {
+        return deepClone(defaultCourses);
+      }
+    }
+
+    function saveCourses() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
+      alert('已保存到浏览器。下次打开页面仍会保留。');
+    }
+
+    function resetCourses() {
+      if (!confirm('确定恢复默认内容吗？当前修改会被清除。')) return;
+      courses = deepClone(defaultCourses);
+      localStorage.removeItem(STORAGE_KEY);
+      renderCourses();
+    }
+
+    function addCourse() {
+      courses.push({
+        overlayTitle: 'New Certification',
+        mainTitle: 'New Certification',
+        subTitle: 'Course Code',
+        code: `OIC Course ${String(courses.length + 1).padStart(2, '0')}`,
+        image: '',
+        url: 'https://example.com/new-course',
+        color: '#4f46e5'
+      });
+      renderCourses();
+    }
+
+    function deleteCourse(index) {
+      const item = courses[index];
+      if (!item) return;
+      if (!confirm(`确定删除 ${item.mainTitle} 吗？`)) return;
+      courses.splice(index, 1);
+      renderCourses();
+    }
+
+    function updatePageTitle() {
+      document.getElementById('pageTitle').textContent = `Published Courses (${courses.length})`;
+    }
+
+    function mediaStyle(course) {
+      const safeImage = course.image ? course.image.replace(/'/g, "%27") : '';
+      const base = safeImage
+        ? `background-image: linear-gradient(rgba(0,0,0,0.12), rgba(0,0,0,0.12)), url('${safeImage}');`
+        : '';
+      return `${base} background-color: ${course.color || '#9c27b0'};`;
+    }
+
+    function createCard(course, index) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.index = index;
+      card.innerHTML = `
+        <a class="card-media-link" href="${escapeAttr(course.url)}" target="_blank" rel="noopener noreferrer">
+          <div class="card-media" style="${mediaStyle(course)}">
+            <div class="overlay-title" contenteditable="true" data-field="overlayTitle">${escapeHtml(course.overlayTitle)}</div>
+          </div>
+        </a>
+        <div class="card-body">
+          <a class="title-link" href="${escapeAttr(course.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="main-title" contenteditable="true" data-field="mainTitle">${escapeHtml(course.mainTitle)}</div>
+          </a>
+          <div class="sub-title" contenteditable="true" data-field="subTitle">${escapeHtml(course.subTitle)}</div>
+          <div class="course-code" contenteditable="true" data-field="code">${escapeHtml(course.code)}</div>
+        </div>
+        <div class="card-footer">
+          <div class="icon-row" aria-hidden="true">
+            <span>💬</span>
+            <span>📣</span>
+          </div>
+          <button class="edit-toggle">编辑模块</button>
+        </div>
+        <div class="editor-panel">
+          <div class="field">
+            <label>图片和标题跳转链接 URL</label>
+            <input type="url" data-input="url" value="${escapeAttr(course.url)}" placeholder="https://example.com/page" />
+          </div>
+          <div class="field">
+            <label>上传本地图片</label>
+            <input type="file" accept="image/*" data-input="file" />
+            <div class="hint">上传后会直接替换当前模块图片。</div>
+          </div>
+          <div class="field">
+            <label>或输入远程图片地址</label>
+            <input type="url" data-input="image" value="${escapeAttr(course.image)}" placeholder="https://.../image.jpg" />
+          </div>
+          <div class="field">
+            <label>背景色（没有图片时显示）</label>
+            <input type="color" data-input="color" value="${escapeAttr(course.color || '#9c27b0')}" />
+          </div>
+          <div class="actions">
+            <button data-action="apply">应用修改</button>
+            <button class="light" data-action="close">关闭</button>
+            <button class="danger" data-action="delete">删除 Certification</button>
+          </div>
+        </div>
+      `;
+
+      const editBtn = card.querySelector('.edit-toggle');
+      const closeBtn = card.querySelector('[data-action="close"]');
+      const applyBtn = card.querySelector('[data-action="apply"]');
+      const deleteBtn = card.querySelector('[data-action="delete"]');
+      const fileInput = card.querySelector('[data-input="file"]');
+
+      editBtn.addEventListener('click', () => card.classList.toggle('editing'));
+      closeBtn.addEventListener('click', () => card.classList.remove('editing'));
+      applyBtn.addEventListener('click', () => applyPanelChanges(card, index));
+      deleteBtn.addEventListener('click', () => deleteCourse(index));
+      fileInput.addEventListener('change', (e) => handleImageUpload(e, index));
+
+      card.querySelectorAll('[contenteditable="true"]').forEach(el => {
+        el.addEventListener('click', (event) => event.stopPropagation());
+        el.addEventListener('input', () => {
+          const field = el.dataset.field;
+          courses[index][field] = el.innerText.trim();
+        });
+      });
+
+      const titleLink = card.querySelector('.title-link');
+      const mainTitle = card.querySelector('.main-title');
+      titleLink.addEventListener('click', (event) => {
+        if (document.activeElement === mainTitle) {
+          event.preventDefault();
+        }
+      });
+
+      return card;
+    }
+
+    function applyPanelChanges(card, index) {
+      const url = card.querySelector('[data-input="url"]').value.trim();
+      const image = card.querySelector('[data-input="image"]').value.trim();
+      const color = card.querySelector('[data-input="color"]').value;
+
+      courses[index].url = url;
+      courses[index].image = image;
+      courses[index].color = color;
+      renderCourses();
+    }
+
+    function handleImageUpload(event, index) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        courses[index].image = e.target.result;
+        renderCourses();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderCourses() {
+      const grid = document.getElementById('courseGrid');
+      grid.innerHTML = '';
+      updatePageTitle();
+      courses.forEach((course, index) => grid.appendChild(createCard(course, index)));
+    }
+
+    function escapeHtml(value = '') {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(value = '') {
+      return String(value).replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('addCourseBtn').addEventListener('click', addCourse);
+    document.getElementById('saveAllBtn').addEventListener('click', saveCourses);
+    document.getElementById('resetBtn').addEventListener('click', resetCourses);
+
+    renderCourses();
+  </script>
+</body>
+</html>
